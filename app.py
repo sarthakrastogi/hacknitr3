@@ -1,16 +1,29 @@
 import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error as MSE
 import tensorflow as tf
+import xgboost as xg
 
 df = st.file_uploader("Upload dataset")
 
 if df is not None:
+    df = pd.read_csv(df)
     df = pd.DataFrame(df)
     X = df[df.columns[:-1]]
     y = df[df.columns[-1]]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+    xgb_r = xg.XGBRegressor(objective ='reg:linear', n_estimators = 10, seed = 123)
+    xgb_r.fit(X_train, y_train)
+    pred = xgb_r.predict(X_test)
+    rmse = np.sqrt(MSE(y_test, pred))
+    st.write("RMSE without embedding for index features is: % f" %(rmse))
+    indexes = st.multiselect("Index", df.columns)
+    st.write('Calculating feature set embeddings for ', indexes)
+
+
 
     trainset = tf.data.Dataset.from_tensor_slices((dict(X_train),dict(y_train))).batch(32)
     validationset = tf.data.Dataset.from_tensor_slices((dict(X_val),dict(y_val))).batch(32)
@@ -56,3 +69,18 @@ if df is not None:
         embeddings_df.join(emb)
 
     embeddings_df.to_csv('embeddings_df.csv')
+
+
+    df = pd.read_csv('embeddings_df.csv')
+    X = df[df.columns[:-1]]
+    y = df[df.columns[-1]]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+    xgb_r = xg.XGBRegressor(objective ='reg:linear', n_estimators = 10, seed = 123)
+    xgb_r.fit(X_train, y_train)
+    pred = xgb_r.predict(X_test)
+    rmse = np.sqrt(MSE(y_test, pred))
+    st.write("RMSE with embedding for index features is: % f" %(rmse))
+    indexes = st.multiselect("Index", df.columns)
+    st.write('Calculating feature set embeddings for ', indexes)
